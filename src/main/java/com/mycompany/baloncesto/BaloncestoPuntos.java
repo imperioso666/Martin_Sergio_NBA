@@ -1,6 +1,8 @@
 
 package com.mycompany.baloncesto;
 
+import java.awt.BorderLayout;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -22,15 +24,46 @@ public class BaloncestoPuntos extends JPanel {
     
 
     public BaloncestoPuntos() {
-        initComponents();
-        Boton_calcular.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                calcularPuntos();
+    initComponents();
+
+    combo_equipos.addItem("Los Angeles Lakers");
+    combo_equipos.addItem("Golden State Warriors");
+
+    combo_equipos.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            combo_jugadores.removeAllItems();
+            String equipoSeleccionado = (String) combo_equipos.getSelectedItem();
+
+            if (equipoSeleccionado.equals("Los Angeles Lakers")) {
+                combo_jugadores.addItem("LeBron James");
+                combo_jugadores.addItem("Anthony Davis");
+                combo_jugadores.addItem("D'Angelo Russell");
+                combo_jugadores.addItem("Rui Hachimura");
+                combo_jugadores.addItem("Austin Reaves");
+            } else if (equipoSeleccionado.equals("Golden State Warriors")) {
+                combo_jugadores.addItem("Stephen Curry");
+                combo_jugadores.addItem("Klay Thompson");
+                combo_jugadores.addItem("Draymond Green");
+                combo_jugadores.addItem("Andrew Wiggins");
+                combo_jugadores.addItem("Kevon Looney");
             }
-        });
-        
-    }
+        }
+    });
+
+    JPanel contenido = new JPanel(); 
+    contenido.setLayout(new GridBagLayout()); 
+    contenido.add(jTabbedPane1); 
+    add(contenido, BorderLayout.CENTER);
+
+    Boton_calcular.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            calcularPuntos();
+        }
+    });
+}
+
     
     private void calcularPuntos() {
         try {
@@ -67,14 +100,8 @@ public class BaloncestoPuntos extends JPanel {
                 valoracion = ((int) (puntos + rebotes + asistencias+ robos + tapones + faltas_recibidas)-(tiros_campo_fallados + tiros_libres_fallados + perdidas + tapones_recibidos + faltas_realizadas));
             }
 
-            String jugador = Campo_rellenar_nombre.getText().trim();
 
-            if (jugador.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "ingrese el nombre del jugador para continuar.");
-                return;
-            }
-
-            guardarEnExcel(jugador,tirosMetidosDe2 , tirosMetidosDe3 , tiros_hechos_de_2 , tiros_hechos_de_3, fgPorcentaje, efgPorcentaje, tiros_libres_hechos , tiros_libres_metidos, tsPorcentaje, valoracion);
+            guardarEnExcel((String) combo_jugadores.getSelectedItem(), tirosMetidosDe2 , tirosMetidosDe3 , tiros_hechos_de_2 , tiros_hechos_de_3, fgPorcentaje, efgPorcentaje, tiros_libres_hechos , tiros_libres_metidos, tsPorcentaje, valoracion);
             resetearCampos();
             
 
@@ -83,91 +110,115 @@ public class BaloncestoPuntos extends JPanel {
         }
     }
 
-    private void guardarEnExcel(String jugador, int tirosDe2, int tirosDe3, int tiros_hechos_de_2, int tiros_hechos_de_3, double fgPorcentaje, double efgPorcentaje,int tiros_libres_hechos, int tiros_libres_metidos, double tsPorcentaje, int valoracion) {
-        File fichero = new File(archivo);
-        Workbook workbook;
-        Sheet sheet;
+    private void guardarEnExcel(String jugador, int tirosDe2, int tirosDe3, int tiros_hechos_de_2, 
+                            int tiros_hechos_de_3, double fgPorcentaje, double efgPorcentaje, 
+                            int tiros_libres_hechos, int tiros_libres_metidos, double tsPorcentaje, 
+                            int valoracion) {
+    String archivo = "Estadisticas_" + combo_equipos.getSelectedItem() + ".xlsx"; // Archivo basado en el equipo seleccionado
+    File fichero = new File(archivo);
+    Workbook workbook;
+    Sheet sheetJugador;
+    Sheet sheetMedias;
 
-        try {
-            if (fichero.exists()) {
-                
-                FileInputStream fis = new FileInputStream(fichero);
-                workbook = new XSSFWorkbook(fis);
-                sheet = workbook.getSheetAt(0);
-            } else {
-                
-                workbook = new XSSFWorkbook();
-                sheet = workbook.createSheet("Estadisticas");
-                
-                Row headerRow = sheet.createRow(0);
-                headerRow.createCell(0).setCellValue("Jugador");
-                headerRow.createCell(1).setCellValue("Tiros hechos de 2");
-                headerRow.createCell(2).setCellValue("Tiros metidos de 2");
-                headerRow.createCell(3).setCellValue("Tiros hechos de 3");
-                headerRow.createCell(4).setCellValue("Tiros metidos de 3");
-                headerRow.createCell(5).setCellValue("FG%");
-                headerRow.createCell(6).setCellValue("eFG%");
-                headerRow.createCell(7).setCellValue("Tiros libres hechos");
-                headerRow.createCell(8).setCellValue("Tiros libres metidos");
-                headerRow.createCell(9).setCellValue("TS%");
-                headerRow.createCell(10).setCellValue("Valoracion");
-                
-            }
-
-            int ultimalinea = sheet.getLastRowNum();
-            Row row = sheet.createRow(ultimalinea + 1);
-
-            row.createCell(0).setCellValue(jugador);
-            row.createCell(1).setCellValue(tiros_hechos_de_2);
-            row.createCell(2).setCellValue(tirosDe2);
-            row.createCell(3).setCellValue(tiros_hechos_de_3);
-            row.createCell(4).setCellValue(tirosDe3);
-            row.createCell(5).setCellValue(fgPorcentaje);
-            row.createCell(6).setCellValue(efgPorcentaje);
-            row.createCell(7).setCellValue(tiros_libres_hechos);
-            row.createCell(8).setCellValue(tiros_libres_metidos);
-            row.createCell(9).setCellValue(tsPorcentaje);
-            row.createCell(10).setCellValue(valoracion);
-            
-            Row filaMedia = sheet.createRow(ultimalinea + 2);
-            filaMedia.createCell(0).setCellValue("Media");
-
-            for (int col = 1; col <= 10; col++) {
-                double suma = 0;
-                int totalFilas = 0;
-
-                for (int i = 1; i <= ultimalinea + 1; i++) {
-                    Row fila = sheet.getRow(i);
-                    if (fila != null && fila.getCell(col) != null) {
-                        try {
-                            suma += fila.getCell(col).getNumericCellValue();
-                            totalFilas++;
-                        } catch (Exception e) {
-
-                        }
-                    }
-                }
-
-                if (totalFilas > 0) {
-                    filaMedia.createCell(col).setCellValue(suma / totalFilas);
-                } else {
-                    filaMedia.createCell(col).setCellValue("0.00");
-                }
-            }
-
-            FileOutputStream fos = new FileOutputStream(fichero);
-            workbook.write(fos);
-
-            fos.close();
-            workbook.close();
-
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Error al guardar en Excel: ");
+    try {
+        if (fichero.exists()) {
+            FileInputStream fis = new FileInputStream(fichero);
+            workbook = new XSSFWorkbook(fis);
+        } else {
+            workbook = new XSSFWorkbook();
         }
+
+        if (workbook.getSheet(jugador) == null) {
+            sheetJugador = workbook.createSheet(jugador);
+            Row headerRow = sheetJugador.createRow(0);
+            headerRow.createCell(0).setCellValue("Jugador");
+            headerRow.createCell(1).setCellValue("Tiros hechos de 2");
+            headerRow.createCell(2).setCellValue("Tiros metidos de 2");
+            headerRow.createCell(3).setCellValue("Tiros hechos de 3");
+            headerRow.createCell(4).setCellValue("Tiros metidos de 3");
+            headerRow.createCell(5).setCellValue("FG%");
+            headerRow.createCell(6).setCellValue("eFG%");
+            headerRow.createCell(7).setCellValue("Tiros libres hechos");
+            headerRow.createCell(8).setCellValue("Tiros libres metidos");
+            headerRow.createCell(9).setCellValue("TS%");
+            headerRow.createCell(10).setCellValue("Valoración");
+        } else {
+            sheetJugador = workbook.getSheet(jugador);
+        }
+
+        int ultimaLinea = sheetJugador.getLastRowNum();
+        Row row = sheetJugador.createRow(ultimaLinea + 1);
+        row.createCell(0).setCellValue(jugador);
+        row.createCell(1).setCellValue(tiros_hechos_de_2);
+        row.createCell(2).setCellValue(tirosDe2);
+        row.createCell(3).setCellValue(tiros_hechos_de_3);
+        row.createCell(4).setCellValue(tirosDe3);
+        row.createCell(5).setCellValue(fgPorcentaje);
+        row.createCell(6).setCellValue(efgPorcentaje);
+        row.createCell(7).setCellValue(tiros_libres_hechos);
+        row.createCell(8).setCellValue(tiros_libres_metidos);
+        row.createCell(9).setCellValue(tsPorcentaje);
+        row.createCell(10).setCellValue(valoracion);
+
+        if (workbook.getSheet("Medias") == null) {
+            sheetMedias = workbook.createSheet("Medias");
+            Row mediaHeader = sheetMedias.createRow(0);
+            mediaHeader.createCell(0).setCellValue("Media de equipo");
+            mediaHeader.createCell(1).setCellValue("Tiros hechos de 2");
+            mediaHeader.createCell(2).setCellValue("Tiros metidos de 2");
+            mediaHeader.createCell(3).setCellValue("Tiros hechos de 3");
+            mediaHeader.createCell(4).setCellValue("Tiros metidos de 3");
+            mediaHeader.createCell(5).setCellValue("FG%");
+            mediaHeader.createCell(6).setCellValue("eFG%");
+            mediaHeader.createCell(7).setCellValue("Tiros libres hechos");
+            mediaHeader.createCell(8).setCellValue("Tiros libres metidos");
+            mediaHeader.createCell(9).setCellValue("TS%");
+            mediaHeader.createCell(10).setCellValue("Valoración");
+        } else {
+            sheetMedias = workbook.getSheet("Medias");
+        }
+
+        int jugadoresContados = 0;
+        double[] suma = new double[11];
+
+        for (int i = 1; i <= sheetJugador.getLastRowNum(); i++) {
+            Row fila = sheetJugador.getRow(i);
+            if (fila != null) {
+                for (int j = 1; j <= 10; j++) {
+                    suma[j] += fila.getCell(j) != null ? fila.getCell(j).getNumericCellValue() : 0;
+                }
+                jugadoresContados++;
+            }
+        }
+
+        int ultimaFilaMedias = sheetMedias.getLastRowNum();
+        Row mediaRow = sheetMedias.createRow(ultimaFilaMedias + 1);
+        mediaRow.createCell(0).setCellValue(combo_equipos.getSelectedItem().toString());
+
+        for (int i = 1; i <= 10; i++) {
+            double media = (jugadoresContados > 0) ? suma[i] / jugadoresContados : 0;
+            mediaRow.createCell(i).setCellValue(media);
+        }
+
+        FileOutputStream fos = new FileOutputStream(fichero);
+        workbook.write(fos);
+        fos.close();
+        workbook.close();
+
+        JOptionPane.showMessageDialog(this, "Estadísticas guardadas con éxito en el archivo: " + archivo);
+
+    } catch (IOException e) {
+        JOptionPane.showMessageDialog(this, "Error al guardar en Excel: " + e.getMessage());
     }
+}
+
+
+    
+    
+
+
 
     private void resetearCampos() {
-        Campo_rellenar_nombre.setText("");
         spinner_metidos_2.setValue(0);
         spinner_metidos_3.setValue(0);
         spinner_hechos_2.setValue(0);
@@ -184,7 +235,7 @@ public class BaloncestoPuntos extends JPanel {
 
         frame.setContentPane(panel);
 
-        frame.setSize(400, 400);
+        frame.setSize(600,300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
 
@@ -208,9 +259,9 @@ public class BaloncestoPuntos extends JPanel {
         spinner_hechos_2 = new javax.swing.JSpinner();
         Tiros_metidos_de_dos = new javax.swing.JLabel();
         Tiros_metidos_de_3 = new javax.swing.JLabel();
-        Nombre_jugador = new javax.swing.JLabel();
-        Campo_rellenar_nombre = new javax.swing.JTextField();
         tiros_libres_hechos = new javax.swing.JLabel();
+        combo_equipos = new javax.swing.JComboBox<>();
+        combo_jugadores = new javax.swing.JComboBox<>();
         jPanel2 = new javax.swing.JPanel();
         Boton_calcular = new javax.swing.JButton();
         Tapones_recibidos = new javax.swing.JLabel();
@@ -230,6 +281,10 @@ public class BaloncestoPuntos extends JPanel {
         faltas_realizadas = new javax.swing.JLabel();
         spinner_faltas_realizadas = new javax.swing.JSpinner();
 
+        setMaximumSize(null);
+        setOpaque(false);
+        setPreferredSize(new java.awt.Dimension(477, 465));
+
         tiros_libres_metidos.setText("Tiros libres metidos");
 
         Tiros_hechos_de_3.setText("Tiros hechos de 3");
@@ -240,9 +295,11 @@ public class BaloncestoPuntos extends JPanel {
 
         Tiros_metidos_de_3.setText("Tiros metidos de 3");
 
-        Nombre_jugador.setText("Nombre del jugador");
-
         tiros_libres_hechos.setText("Tiros libres hechos");
+
+        combo_equipos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Equipos" }));
+
+        combo_jugadores.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Jugadores" }));
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -250,43 +307,44 @@ public class BaloncestoPuntos extends JPanel {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(37, 37, 37)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(Nombre_jugador)
-                        .addGap(49, 49, 49)
-                        .addComponent(Campo_rellenar_nombre, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(Tiros_hechos_de_3)
-                            .addComponent(tiros_libres_metidos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(tiros_libres_hechos, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(spinner_hechos_3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(spinner_metidos_libres, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(spinner_libres_hechos, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(Tiros_metidos_de_dos, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(49, 49, 49)
-                        .addComponent(spinner_metidos_2, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(Tiros_metidos_de_3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(spinner_metidos_3, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(Tiros_hechos_de_2)
-                        .addGap(65, 65, 65)
-                        .addComponent(spinner_hechos_2, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(combo_equipos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(combo_jugadores, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(Tiros_hechos_de_3)
+                                .addComponent(tiros_libres_metidos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(tiros_libres_hechos, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(spinner_hechos_3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(spinner_metidos_libres, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(spinner_libres_hechos, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(Tiros_metidos_de_dos, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(49, 49, 49)
+                            .addComponent(spinner_metidos_2, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(Tiros_metidos_de_3)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(spinner_metidos_3, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(Tiros_hechos_de_2)
+                            .addGap(65, 65, 65)
+                            .addComponent(spinner_hechos_2, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addContainerGap(154, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(92, 92, 92)
+                .addGap(35, 35, 35)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(Nombre_jugador)
-                    .addComponent(Campo_rellenar_nombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
+                    .addComponent(combo_equipos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(combo_jugadores, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(75, 75, 75)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(Tiros_metidos_de_dos)
                     .addComponent(spinner_metidos_2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -310,7 +368,7 @@ public class BaloncestoPuntos extends JPanel {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tiros_libres_hechos)
                     .addComponent(spinner_libres_hechos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(111, Short.MAX_VALUE))
+                .addContainerGap(128, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("tab1", jPanel1);
@@ -376,7 +434,7 @@ public class BaloncestoPuntos extends JPanel {
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                     .addComponent(spinner_asistencias, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(spinner_rebotes, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                        .addContainerGap(154, Short.MAX_VALUE))))
+                        .addContainerGap(207, Short.MAX_VALUE))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -424,25 +482,22 @@ public class BaloncestoPuntos extends JPanel {
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(65, 65, 65)
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 477, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(465, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addGap(0, 0, Short.MAX_VALUE)
+                .addComponent(jTabbedPane1))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(15, 15, 15)
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(421, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton Boton_calcular;
-    private javax.swing.JTextField Campo_rellenar_nombre;
-    private javax.swing.JLabel Nombre_jugador;
     private javax.swing.JLabel Perdidas;
     private javax.swing.JLabel Robos;
     private javax.swing.JLabel Tapones;
@@ -452,6 +507,8 @@ public class BaloncestoPuntos extends JPanel {
     private javax.swing.JLabel Tiros_metidos_de_3;
     private javax.swing.JLabel Tiros_metidos_de_dos;
     private javax.swing.JLabel asistencias;
+    private javax.swing.JComboBox<String> combo_equipos;
+    private javax.swing.JComboBox<String> combo_jugadores;
     private javax.swing.JLabel faltas_realizadas;
     private javax.swing.JLabel faltas_recibidas;
     private javax.swing.JPanel jPanel1;
