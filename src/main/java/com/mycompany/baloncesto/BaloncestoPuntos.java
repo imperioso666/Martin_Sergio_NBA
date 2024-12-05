@@ -16,11 +16,17 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtils;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.category.DefaultCategoryDataset;
+
 
 
 public class BaloncestoPuntos extends JPanel {
     
     private static String archivo = "EstadisticasBaloncesto.xlsx";
+    
     
 
     public BaloncestoPuntos() {
@@ -62,6 +68,17 @@ public class BaloncestoPuntos extends JPanel {
             calcularPuntos();
         }
     });
+    Boton_grafica1.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String jugadorSeleccionado = (String) combo_jugadores.getSelectedItem();
+            if (jugadorSeleccionado != null && !jugadorSeleccionado.isEmpty()) {
+                generarGraficoDePuntos(jugadorSeleccionado);
+            } else {
+                JOptionPane.showMessageDialog(BaloncestoPuntos.this, "Seleccione un jugador.");
+            }
+        }
+    });
 }
 
     
@@ -99,7 +116,7 @@ public class BaloncestoPuntos extends JPanel {
                 tsPorcentaje = ((double) (puntos_campo + tiros_libres_metidos) / (2* (tiros_hechos_de_2 + tiros_hechos_de_3 + (0.44 * tiros_libres_hechos)))) * 100;
                 valoracion = ((int) (puntos + rebotes + asistencias+ robos + tapones + faltas_recibidas)-(tiros_campo_fallados + tiros_libres_fallados + perdidas + tapones_recibidos + faltas_realizadas));
             }
-
+            
 
             guardarEnExcel((String) combo_jugadores.getSelectedItem(), tirosMetidosDe2 , tirosMetidosDe3 , tiros_hechos_de_2 , tiros_hechos_de_3, fgPorcentaje, efgPorcentaje, tiros_libres_hechos , tiros_libres_metidos, tsPorcentaje, valoracion);
             resetearCampos();
@@ -109,12 +126,65 @@ public class BaloncestoPuntos extends JPanel {
             JOptionPane.showMessageDialog(this, "Ocurrio un error , revise que introdujo los datos correctamente");
         }
     }
+    
+    private void generarGraficoDePuntos(String jugador) {
+        try {
+            // Abre el archivo Excel
+            String archivoExcel = "Estadisticas_" + combo_equipos.getSelectedItem() + ".xlsx"; // Nombre del archivo Excel basado en el equipo seleccionado
+            FileInputStream fis = new FileInputStream(archivoExcel);
+            Workbook workbook = new XSSFWorkbook(fis);
+            Sheet sheet = workbook.getSheet(jugador);  // Asumiendo que los datos están en la primera hoja
+
+            if (sheet == null) {
+                JOptionPane.showMessageDialog(this, "No se encontraron datos para el jugador: " + jugador);
+                return;
+            }
+
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row fila = sheet.getRow(i);
+                if (fila != null) {
+                    String nombreJugador = fila.getCell(0).getStringCellValue();
+                    if (nombreJugador.equalsIgnoreCase(jugador)) {
+                        
+                        double tirosMetidosDe2 = fila.getCell(2).getNumericCellValue();
+                        double tirosMetidosDe3 = fila.getCell(4).getNumericCellValue();
+                        double tirosLibresMetidos = fila.getCell(7).getNumericCellValue();
+                        double puntos = (tirosMetidosDe2 * 2) + (tirosMetidosDe3 * 3) + (tirosLibresMetidos * 1);
+
+                        String partido = "Partido " + (i);
+                        dataset.addValue(puntos, "Puntos", partido);
+                    }
+                }
+            }
+
+           
+            JFreeChart grafico = ChartFactory.createBarChart("Puntos por partido de " + jugador,"Partidos","Puntos",dataset);
+
+            File directorio = new File("graficas");
+            if (!directorio.exists()) {
+                directorio.mkdir();
+            }
+            
+            
+            File archivoGrafico = new File(directorio, jugador + "_puntos.png");
+            ChartUtils.saveChartAsPNG(archivoGrafico, grafico, 800, 600);
+
+            JOptionPane.showMessageDialog(this, "Gráfico generado correctamente");
+            workbook.close();
+            fis.close();
+
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al leer el archivo Excel o generar el gráfico: " + e.getMessage());
+        }
+    }
 
     private void guardarEnExcel(String jugador, int tirosDe2, int tirosDe3, int tiros_hechos_de_2, 
                             int tiros_hechos_de_3, double fgPorcentaje, double efgPorcentaje, 
                             int tiros_libres_hechos, int tiros_libres_metidos, double tsPorcentaje, 
                             int valoracion) {
-    String archivo = "Estadisticas_" + combo_equipos.getSelectedItem() + ".xlsx"; // Archivo basado en el equipo seleccionado
+    String archivo = "Estadisticas_" + combo_equipos.getSelectedItem() + ".xlsx";
     File fichero = new File(archivo);
     Workbook workbook;
     Sheet sheetJugador;
@@ -205,7 +275,7 @@ public class BaloncestoPuntos extends JPanel {
         fos.close();
         workbook.close();
 
-        JOptionPane.showMessageDialog(this, "Estadísticas guardadas con éxito en el archivo: " + archivo);
+        JOptionPane.showMessageDialog(this, "Estadísticas guardadas en el archivo: " + archivo);
 
     } catch (IOException e) {
         JOptionPane.showMessageDialog(this, "Error al guardar en Excel: " + e.getMessage());
@@ -225,6 +295,15 @@ public class BaloncestoPuntos extends JPanel {
         spinner_hechos_3.setValue(0);
         spinner_metidos_libres.setValue(0);
         spinner_libres_hechos.setValue(0);
+        spinner_rebotes.setValue(0);
+        spinner_asistencias.setValue(0);
+        spinner_robos.setValue(0);
+        spinner_tapones.setValue(0);
+        spinner_tapones_recibidos.setValue(0);
+        spinner_perdidas.setValue(0);
+        spinner_faltas_recibidas.setValue(0);
+        spinner_faltas_realizadas.setValue(0);
+        
     }
 
     public static void main(String[] args) {
@@ -235,7 +314,7 @@ public class BaloncestoPuntos extends JPanel {
 
         frame.setContentPane(panel);
 
-        frame.setSize(600,300);
+        frame.setSize(477, 523);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
 
@@ -280,6 +359,7 @@ public class BaloncestoPuntos extends JPanel {
         spinner_rebotes = new javax.swing.JSpinner();
         faltas_realizadas = new javax.swing.JLabel();
         spinner_faltas_realizadas = new javax.swing.JSpinner();
+        Boton_grafica1 = new javax.swing.JButton();
 
         setMaximumSize(null);
         setOpaque(false);
@@ -368,12 +448,12 @@ public class BaloncestoPuntos extends JPanel {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tiros_libres_hechos)
                     .addComponent(spinner_libres_hechos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(128, Short.MAX_VALUE))
+                .addContainerGap(143, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab1", jPanel1);
+        jTabbedPane1.addTab("Datos Equipo y jugador", jPanel1);
 
-        Boton_calcular.setText("Calcular");
+        Boton_calcular.setText("Generar Excel");
 
         Tapones_recibidos.setText("Tapones recibidos");
 
@@ -391,55 +471,55 @@ public class BaloncestoPuntos extends JPanel {
 
         faltas_realizadas.setText("Faltas realizadas");
 
+        Boton_grafica1.setText("Generar gráfica");
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(37, 37, 37)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(Boton_calcular, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(42, 42, 42))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(faltas_realizadas, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(spinner_faltas_realizadas, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(Tapones_recibidos)
-                                    .addComponent(Perdidas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(faltas_recibidas, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(spinner_tapones_recibidos, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(spinner_perdidas, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(spinner_faltas_recibidas, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(Tapones)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(spinner_tapones, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(Robos)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(spinner_robos, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(asistencias, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(rebotes))
-                                .addGap(49, 49, 49)
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(spinner_asistencias, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(spinner_rebotes, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                        .addContainerGap(207, Short.MAX_VALUE))))
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(Boton_calcular)
+                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                            .addComponent(faltas_realizadas, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(spinner_faltas_realizadas, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(Tapones_recibidos)
+                                .addComponent(Perdidas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(faltas_recibidas, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(spinner_tapones_recibidos, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(spinner_perdidas, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(spinner_faltas_recibidas, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                            .addComponent(Tapones)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(spinner_tapones, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                            .addComponent(Robos)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(spinner_robos, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(asistencias, javax.swing.GroupLayout.PREFERRED_SIZE, 109, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(rebotes))
+                            .addGap(49, 49, 49)
+                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                .addComponent(spinner_asistencias, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(spinner_rebotes, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(Boton_grafica1)
+                .addContainerGap(38, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addGap(92, 92, 92)
+                .addGap(33, 33, 33)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(rebotes)
                     .addComponent(spinner_rebotes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -471,12 +551,14 @@ public class BaloncestoPuntos extends JPanel {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(faltas_realizadas)
                     .addComponent(spinner_faltas_realizadas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(Boton_calcular, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(44, 44, 44))
+                .addGap(38, 38, 38)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(Boton_calcular, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(Boton_grafica1, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(86, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("tab2", jPanel2);
+        jTabbedPane1.addTab("Mas datos", jPanel2);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -490,14 +572,17 @@ public class BaloncestoPuntos extends JPanel {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 532, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
+
+        jTabbedPane1.getAccessibleContext().setAccessibleName("Datos Equipo y jugador");
     }// </editor-fold>//GEN-END:initComponents
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton Boton_calcular;
+    private javax.swing.JButton Boton_grafica1;
     private javax.swing.JLabel Perdidas;
     private javax.swing.JLabel Robos;
     private javax.swing.JLabel Tapones;
