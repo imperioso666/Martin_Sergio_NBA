@@ -74,6 +74,7 @@ public class BaloncestoPuntos extends JPanel {
             String jugadorSeleccionado = (String) combo_jugadores.getSelectedItem();
             if (jugadorSeleccionado != null && !jugadorSeleccionado.isEmpty()) {
                 generarGraficoDePuntos(jugadorSeleccionado);
+                generarGraficoRebotes(jugadorSeleccionado);
             } else {
                 JOptionPane.showMessageDialog(BaloncestoPuntos.this, "Seleccione un jugador.");
             }
@@ -130,10 +131,10 @@ public class BaloncestoPuntos extends JPanel {
     private void generarGraficoDePuntos(String jugador) {
         try {
             // Abre el archivo Excel
-            String archivoExcel = "Estadisticas_" + combo_equipos.getSelectedItem() + ".xlsx"; // Nombre del archivo Excel basado en el equipo seleccionado
+            String archivoExcel = "Estadisticas_" + combo_equipos.getSelectedItem() + ".xlsx";
             FileInputStream fis = new FileInputStream(archivoExcel);
             Workbook workbook = new XSSFWorkbook(fis);
-            Sheet sheet = workbook.getSheet(jugador);  // Asumiendo que los datos están en la primera hoja
+            Sheet sheet = workbook.getSheet(jugador); 
 
             if (sheet == null) {
                 JOptionPane.showMessageDialog(this, "No se encontraron datos para el jugador: " + jugador);
@@ -141,6 +142,9 @@ public class BaloncestoPuntos extends JPanel {
             }
 
             DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            
+            double suma_de_los_puntos = 0;
+            int partidos = 0;
 
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row fila = sheet.getRow(i);
@@ -155,14 +159,23 @@ public class BaloncestoPuntos extends JPanel {
 
                         String partido = "Partido " + (i);
                         dataset.addValue(puntos, "Puntos", partido);
+                        
+                       suma_de_los_puntos += puntos;
+                       partidos++;
                     }
                 }
+            }
+            double mediaPuntos = suma_de_los_puntos / partidos;
+            DefaultCategoryDataset mediaDataset = new DefaultCategoryDataset();
+            for (int i = 1; i <= partidos; i++) {
+                String partido = "Partido " + i;
+                mediaDataset.addValue(mediaPuntos, "Media", partido);
             }
 
            
             JFreeChart grafico = ChartFactory.createBarChart("Puntos por partido de " + jugador,"Partidos","Puntos",dataset);
 
-            File directorio = new File("graficas");
+            File directorio = new File("graficas/" + jugador);
             if (!directorio.exists()) {
                 directorio.mkdir();
             }
@@ -171,7 +184,7 @@ public class BaloncestoPuntos extends JPanel {
             File archivoGrafico = new File(directorio, jugador + "_puntos.png");
             ChartUtils.saveChartAsPNG(archivoGrafico, grafico, 800, 600);
 
-            JOptionPane.showMessageDialog(this, "Gráfico generado correctamente");
+            JOptionPane.showMessageDialog(this, "Gráfico de puntos generado correctamente");
             workbook.close();
             fis.close();
 
@@ -179,6 +192,59 @@ public class BaloncestoPuntos extends JPanel {
             JOptionPane.showMessageDialog(this, "Error al leer el archivo Excel o generar el gráfico: " + e.getMessage());
         }
     }
+    
+    private void generarGraficoRebotes(String jugador) {
+    try {
+        
+        String archivoExcel = "Estadisticas_" + combo_equipos.getSelectedItem() + ".xlsx";
+        FileInputStream fis = new FileInputStream(archivoExcel);
+        Workbook workbook = new XSSFWorkbook(fis);
+        Sheet sheet = workbook.getSheet(jugador);
+
+        if (sheet == null) {
+            JOptionPane.showMessageDialog(this, "No se encontraron datos para el jugador: " + jugador);
+            return;
+        }
+        
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+      
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) { 
+            Row fila = sheet.getRow(i);
+            if (fila != null) {
+                double rebotes = fila.getCell(8).getNumericCellValue();
+                String partido = "Partido " + i;
+                dataset.addValue(rebotes, "Rebotes", partido);
+            }
+        }
+
+        
+        JFreeChart chart = ChartFactory.createLineChart(
+            "Rebotes por partido de " + jugador,
+            "Partidos",
+            "Rebotes",
+            dataset
+        );
+
+        
+        File directorioJugador = new File("graficas/" + jugador);
+        if (!directorioJugador.exists()) {
+            directorioJugador.mkdirs(); 
+        }
+
+        File archivoGrafico = new File(directorioJugador, jugador + "_rebotes.png");
+        ChartUtils.saveChartAsPNG(archivoGrafico, chart, 800, 600);
+
+        JOptionPane.showMessageDialog(this, "Gráfico de rebotes generado correctamente:");
+
+        workbook.close();
+        fis.close();
+
+    } catch (IOException e) {
+        JOptionPane.showMessageDialog(this, "Error al generar el gráfico de rebotes: " + e.getMessage());
+    }
+}
+
 
     private void guardarEnExcel(String jugador, int tirosDe2, int tirosDe3, int tiros_hechos_de_2, 
                             int tiros_hechos_de_3, double fgPorcentaje, double efgPorcentaje, 
